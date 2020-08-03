@@ -1,0 +1,67 @@
+---
+title: 'Course Project: Practical Machine Learning'
+author: "Mateopr"
+date: "8/3/2020"
+output: html_document
+---
+## Summary
+
+The aim of the project is to create a model to predict the classe variable of the
+testing data set. The model was developed using the Random Forest method and pre processing
+the training data set. The model was applied on the testing data set obtaining all the
+answers right in the Prediction Quiz.
+
+## Data pre-processing
+
+The first step is to load the files and the libraries. Then, I pre-processed the data
+transforming the characters into factor and removing those variables that are empty or 
+almost empty. By doing that, the number of variables was reduced from 196 to 53.
+
+```{r}
+library(caret)
+library(dplyr)
+training <- read.csv("pml-training.csv")
+testing <- read.csv("pml-testing.csv")
+training <- training %>% mutate_if(is.character,as.factor)
+testing <- testing %>% mutate_if(is.character,as.factor)
+training <- training[,colSums(is.na(training))==0]
+training <- training[!sapply(training, function(x) all(x==""))]
+training <- training[, -c(nearZeroVar(training), 1:7),]
+
+inTrain = createDataPartition(training$classe, p = 3/4)[[1]]
+
+training2 = training[ inTrain,]
+
+testing2 = training[-inTrain,]
+```
+
+## Model selection
+
+The number of variables was high, so I did not do any plotting before the modeling.
+The method that I used was Random Forest because it can handle binary features, categorical
+features, and numerical features. The main drawback is that is like a black box and 
+it is not easy to interpret the model, but it has high accuracy for this data set. 
+```{r}
+model<- train(classe ~ ., data=training2, method="rf",trControl=trainControl(method="none"), tuneGrid=data.frame(mtry=7))
+model$finalmodel
+```
+
+## Cross-validation
+
+- Divide the data into training and testing: The raw data was already divided by training 
+and testing. But, the testing is just 20 samples for the quiz. So, I splited the data
+into training2 (75%) and testing2(25%) to evaluate the model.
+- Build a model on the training set.
+- Evaluate on the test set (testing2).
+
+## Results
+
+The model obtained was tested in the testing2 set obtaining a 99.61% accuracy.
+I did the Project Quiz and I answered right the 20 questions.
+```{r}
+pretrain <- predict(model, testing2)
+confusionMatrix(testing2$classe,pretrain)
+pretest <- predict(model, testing)
+pretest
+```
+
